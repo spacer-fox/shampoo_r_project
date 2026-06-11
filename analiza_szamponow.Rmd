@@ -1,0 +1,703 @@
+---
+title: "Analiza preferencji konsumentów na rynku szamponów"
+subtitle: "Conjoint (menu-based), klastrowanie i ordynacja danych"
+author: "Imię Nazwisko"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    number_sections: true
+    df_print: paged
+  pdf_document:
+    toc: true
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.width  = 8,
+  fig.height = 5
+)
+```
+
+```{r pakiety}
+# install.packages(c("readxl","tidyverse","factoextra","FactoMineR","cluster",
+#                    "NbClust","knitr","kableExtra","broom","vegan","ggrepel"))
+library(readxl)
+library(tidyverse)
+library(factoextra)
+library(FactoMineR)
+library(cluster)
+library(NbClust)
+library(knitr)
+library(kableExtra)
+library(broom)
+library(ggrepel)
+library(vegan)
+```
+
+# Wprowadzenie
+
+Projekt przedstawia analizę preferencji konsumentów na rynku szamponów. Opieramy się na badaniu ankietowym (N = 36), które przeprowadziliśmy za pomocą Microsoft Forms.
+
+**Link do ankiety:** <https://forms.office.com/e/RNGmBCcPmZ>.
+
+Zgodnie z wymaganiami projektu wykorzystaliśmy trzy techniki analityczne:
+
+1.  **Conjoint** w wariancie *menu-based* (pytanie 9). Respondent buduje idealny szampon. Wybiera cechy przy ograniczonym budżecie, więc musi z czegoś zrezygnować.
+2.  **Klastrowanie danych**. Dzielimy konsumentów na segmenty metodą k-means. Robimy to na podstawie cech demograficzno-zakupowych oraz na podstawie koszyków wyborów.
+3.  **Ordynacja danych**. Stosujemy PCA, analizę korespondencji (CA) i skalowanie wielowymiarowe (MDS/NMDS), żeby pokazać strukturę preferencji na mapach.
+
+------------------------------------------------------------------------
+
+# Dane i przygotowanie
+
+```{r wczytanie}
+plik <- "Analiza_preferencji_szamponow_komplet_36.xlsx"
+df_raw <- read_excel(plik)
+
+colnames(df_raw) <- c(
+  "id", "czas_start", "czas_koniec", "email", "nazwa", "modyfikacja",
+  "plec", "wiek", "czestotliwosc", "miejsce_zakupu", "budzet",
+  "sls", "parabeny", "naturalne", "keratyna", "olejki", "vegan",
+  "butelka", "kostka", "kapsulki", "suchy", "refill",
+  "ranking_dzialan", "menu_q9"
+)
+```
+
+```{r czyszczenie}
+skl_cols <- c("sls", "parabeny", "naturalne", "keratyna", "olejki", "vegan")
+fmt_cols <- c("butelka", "kostka", "kapsulki", "suchy", "refill")
+
+df <- df_raw %>%
+  mutate(across(all_of(skl_cols),
+                ~ as.numeric(ifelse(. == "Nie wiem co to", NA, .)))) %>%
+  mutate(across(all_of(fmt_cols), as.numeric))
+
+poziomy_wiek   <- c("15-24", "25-34", "35-44", "45-54", "55 i więcej")
+poziomy_budzet <- c("Poniżej 10 zł", "10-20 zł", "21-35 zł", "36-60 zł", "Powyżej 60 zł")
+poziomy_czest  <- c("Codziennie", "Co 2-3 dni", "Raz w tygodniu", "Rzadziej")
+
+df <- df %>%
+  mutate(
+    plec           = factor(plec),
+    wiek           = factor(wiek,          levels = poziomy_wiek,   ordered = TRUE),
+    czestotliwosc  = factor(czestotliwosc, levels = poziomy_czest,  ordered = TRUE),
+    miejsce_zakupu = factor(miejsce_zakupu),
+    budzet         = factor(budzet,        levels = poziomy_budzet, ordered = TRUE)
+  )
+```
+
+## Charakterystyka próby
+
+```{r opis-proby}
+bind_rows(
+  tibble(Zmienna = "Płeć",           Kategoria = names(table(df$plec)),           N = as.integer(table(df$plec))),
+  tibble(Zmienna = "Wiek",           Kategoria = names(table(df$wiek)),           N = as.integer(table(df$wiek))),
+  tibble(Zmienna = "Częstotliwość",  Kategoria = names(table(df$czestotliwosc)),  N = as.integer(table(df$czestotliwosc))),
+  tibble(Zmienna = "Miejsce zakupu", Kategoria = names(table(df$miejsce_zakupu)), N = as.integer(table(df$miejsce_zakupu))),
+  tibble(Zmienna = "Budżet",         Kategoria = names(table(df$budzet)),         N = as.integer(table(df$budzet)))
+) %>%
+  kbl(caption = "Charakterystyka próby (N = 36)") %>%
+  kable_styling(bootstrap_options = c("striped","hover","condensed"), full_width = FALSE) %>%
+  collapse_rows(columns = 1, valign = "top")
+```
+
+------------------------------------------------------------------------
+
+# Conjoint — menu-based (pytanie 9) {#conjoint}
+
+Pytanie 9 to zadanie **menu-based conjoint (MBC)**. Respondent buduje swój idealny szampon. Wybiera maksymalnie 4 dodatki przy budżecie 40 zł (baza 12 zł, każda cecha ma cenę). Budżet wymusza trade-off. Respondent musi zrezygnować z części cech. To właśnie odróżnia MBC od zwykłych deklaracji ważności.
+
+```{r mbc-przygotowanie}
+menu_ceny <- tibble::tribble(
+  ~cecha,                                          ~cena, ~typ,
+  "Naturalne / roślinne składniki",                 12,   "Składnik",
+  "Keratyna",                                        8,   "Składnik",
+  "Bez SLS / SLES",                                  6,   "Składnik",
+  "Olejki – arganowy, kokosowy",                     7,   "Składnik",
+  "Certyfikat vegan / cruelty-free",                 9,   "Składnik",
+  "Format: szampon w kostce",                        5,   "Format",
+  "Działanie: regeneracja zniszczonych włosów",      6,   "Działanie",
+  "Marka fryzjerska",                                8,   "Marka"
+)
+
+oczysc_ceche <- function(x) {
+  x <- str_remove(x, "\\s*\\(\\+?\\d+\\s*zł\\)\\s*$")
+  str_squish(x)
+}
+
+mbc_long <- df %>%
+  select(id, menu_q9) %>%
+  filter(!is.na(menu_q9)) %>%
+  mutate(menu_q9 = str_remove(menu_q9, ";\\s*$")) %>%
+  separate_rows(menu_q9, sep = ";") %>%
+  mutate(cecha = oczysc_ceche(menu_q9)) %>%
+  filter(cecha != "") %>%
+  left_join(menu_ceny, by = "cecha")
+
+n_resp_mbc <- n_distinct(mbc_long$id)
+```
+
+Liczba respondentów w zadaniu MBC: **`r n_resp_mbc`**.
+
+## Choice share — udział wyboru cech
+
+Choice share to odsetek respondentów, którzy włączyli daną cechę do produktu. To nasz odpowiednik ważności atrybutów z klasycznego conjoint.
+
+```{r choice-share, fig.cap="Choice share — odsetek respondentów wybierających cechę"}
+choice_share <- mbc_long %>%
+  count(cecha, cena, typ, name = "wybory") %>%
+  mutate(share = round(100 * wybory / n_resp_mbc, 1)) %>%
+  arrange(desc(share))
+
+choice_share %>%
+  ggplot(aes(x = reorder(cecha, share), y = share, fill = typ)) +
+  geom_col(alpha = .85) +
+  geom_text(aes(label = paste0(share, "%")), hjust = -.1, size = 3.4) +
+  coord_flip() +
+  scale_y_continuous(limits = c(0, max(choice_share$share) * 1.25)) +
+  scale_fill_brewer(palette = "Set2") +
+  labs(title = "Choice share cech w idealnym szamponie",
+       subtitle = paste0("Menu-based conjoint, N = ", n_resp_mbc),
+       x = NULL, y = "Odsetek respondentów (%)", fill = "Typ cechy") +
+  theme_minimal() + theme(legend.position = "bottom")
+```
+
+```{r choice-share-tabela}
+choice_share %>%
+  select(Cecha = cecha, Typ = typ, `Cena (zł)` = cena,
+         `Wybory (n)` = wybory, `Choice share (%)` = share) %>%
+  kbl(caption = "Choice share i ceny cech (pytanie 9)") %>%
+  kable_styling(bootstrap_options = c("striped","hover"), full_width = FALSE)
+```
+
+## Trade-off: cena vs. popularność
+
+Tu patrzymy na cenę i popularność razem. Cecha droga, a często wybierana, ma dużą realną wartość. Cecha tania, ale ignorowana, to martwy atrybut.
+
+```{r tradeoff, fig.cap="Cena cechy vs. choice share"}
+choice_share %>%
+  ggplot(aes(x = cena, y = share, label = cecha, color = typ)) +
+  geom_point(size = 4, alpha = .8) +
+  geom_text_repel(size = 3, max.overlaps = 12, show.legend = FALSE) +
+  scale_color_brewer(palette = "Set2") +
+  labs(title = "Trade-off cena ↔ popularność",
+       subtitle = "Prawy górny róg = wysoka wartość mimo wysokiej ceny",
+       x = "Cena dodatku (zł)", y = "Choice share (%)", color = "Typ") +
+  theme_minimal() + theme(legend.position = "bottom")
+```
+
+```{r efektywnosc, fig.cap="Efektywność cenowa cech"}
+choice_share %>%
+  mutate(efektywnosc = round(share / cena, 2)) %>%
+  ggplot(aes(x = reorder(cecha, efektywnosc), y = efektywnosc, fill = typ)) +
+  geom_col(alpha = .85) +
+  geom_text(aes(label = efektywnosc), hjust = -.1, size = 3.2) +
+  coord_flip() +
+  scale_fill_brewer(palette = "Set2") +
+  labs(title = "Efektywność cenowa (choice share na 1 zł)",
+       x = NULL, y = "Choice share / cena", fill = "Typ") +
+  theme_minimal() + theme(legend.position = "bottom")
+```
+
+## Symulacja idealnego produktu
+
+```{r koszyki}
+koszyki <- mbc_long %>%
+  group_by(id) %>%
+  summarise(koszyk = paste(sort(cecha), collapse = " + "),
+            n_cech = n(),
+            koszt  = sum(cena, na.rm = TRUE),
+            .groups = "drop")
+
+koszyki %>%
+  count(koszyk, name = "liczba") %>%
+  arrange(desc(liczba)) %>%
+  head(8) %>%
+  kbl(caption = "Najpopularniejsze kombinacje cech",
+      col.names = c("Kombinacja cech", "Liczba respondentów")) %>%
+  kable_styling(bootstrap_options = c("striped","hover"), full_width = FALSE)
+```
+
+```{r idealny-produkt}
+budzet_max <- 40 - 12
+
+idealny <- choice_share %>%
+  arrange(desc(share)) %>%
+  mutate(koszt_skumul = cumsum(cena)) %>%
+  filter(koszt_skumul <= budzet_max)
+
+idealny %>%
+  select(Cecha = cecha, `Cena (zł)` = cena, `Choice share (%)` = share,
+         `Koszt skumul. (zł)` = koszt_skumul) %>%
+  kbl(caption = paste0("Idealny szampon rynku (budżet ", budzet_max, " zł na dodatki)")) %>%
+  kable_styling(bootstrap_options = c("striped","hover"), full_width = FALSE) %>%
+  footnote(general = paste0("Baza 12 zł + dodatki ", sum(idealny$cena),
+                            " zł = ", 12 + sum(idealny$cena), " zł łącznie."))
+```
+
+```{r rozklad-kosztow, fig.cap="Rozkład kosztu zbudowanych szamponów"}
+koszyki %>%
+  ggplot(aes(x = koszt + 12)) +
+  geom_histogram(binwidth = 4, fill = "#1D9E75", alpha = .8, color = "white") +
+  geom_vline(xintercept = 40, linetype = "dashed", color = "#A32D2D", linewidth = .8) +
+  labs(title = "Rozkład całkowitego kosztu (baza + dodatki)",
+       x = "Koszt całkowity (zł)", y = "Liczba respondentów") +
+  theme_minimal()
+```
+
+## Użyteczności cząstkowe (part-worths) {#part-worths}
+
+To nasz odpowiednik `caPartUtilities` z klasycznego conjoint. MBC zbiera wybory binarne (cecha wybrana albo nie). Dlatego użyteczność każdej cechy liczymy modelem regresji logistycznej. Sprawdzamy, jak wybór cechy zależy od jej ceny i typu. Dodatkowo liczymy prostą użyteczność jako logit choice share. To daje nam porządek wartości cech.
+
+```{r part-worths}
+# ── Użyteczność jako logit(choice share) — im wyższa, tym cenniejsza cecha ────
+partworth <- choice_share %>%
+  mutate(
+    p = pmin(pmax(share / 100, 0.01), 0.99),       # zabezpiecz przed 0/1
+    utility = round(log(p / (1 - p)), 3)            # logit = part-worth
+  ) %>%
+  arrange(desc(utility))
+
+partworth %>%
+  select(Cecha = cecha, Typ = typ, `Cena (zł)` = cena,
+         `Choice share (%)` = share, `Użyteczność (logit)` = utility) %>%
+  kbl(caption = "Użyteczności cząstkowe cech (part-worths)") %>%
+  kable_styling(bootstrap_options = c("striped","hover"), full_width = FALSE)
+```
+
+```{r part-worths-wykres, fig.cap="Użyteczności cząstkowe cech (part-worths)"}
+partworth %>%
+  ggplot(aes(x = reorder(cecha, utility), y = utility, fill = utility > 0)) +
+  geom_col(alpha = .85) +
+  geom_hline(yintercept = 0, color = "grey40") +
+  coord_flip() +
+  scale_fill_manual(values = c("TRUE" = "#1D9E75", "FALSE" = "#D85A30"),
+                    guide = "none") +
+  labs(title    = "Użyteczności cząstkowe (part-worths)",
+       subtitle = "Dodatnia = cecha podnosi atrakcyjność produktu; ujemna = obniża",
+       x = NULL, y = "Użyteczność (logit choice share)") +
+  theme_minimal()
+```
+
+```{r part-worths-model}
+# ── Model: prawdopodobieństwo wyboru ~ cena (regresja logistyczna) ────────────
+# Buduje pełną macierz respondent × cecha (wybrana=1/0) i modeluje wpływ ceny
+macierz_pelna <- expand_grid(
+  id    = unique(mbc_long$id),
+  cecha = menu_ceny$cecha
+) %>%
+  left_join(menu_ceny, by = "cecha") %>%
+  left_join(mbc_long %>% mutate(wybrana = 1L) %>% select(id, cecha, wybrana),
+            by = c("id", "cecha")) %>%
+  mutate(wybrana = replace_na(wybrana, 0L))
+
+model_logit <- glm(wybrana ~ cena + typ, data = macierz_pelna, family = binomial)
+
+broom::tidy(model_logit) %>%
+  mutate(across(where(is.numeric), ~ round(., 3))) %>%
+  kbl(caption = "Model wyboru cechy: wpływ ceny i typu (regresja logistyczna)",
+      col.names = c("Zmienna", "Współczynnik", "SE", "z", "p")) %>%
+  kable_styling(bootstrap_options = c("striped","hover"), full_width = FALSE) %>%
+  footnote(general = "Ujemny współczynnik przy cenie = im drożej, tym rzadziej wybierana.")
+```
+
+## Symulacje rynkowe {#symulacje}
+
+To nasz odpowiednik symulacji `caMaxUtility`, `caBTL` i `caLogit` z projektu pizzowego. Mamy trzy modele. Każdy przewiduje udział cechy w rynku. Różnią się tym, jak zakładają, że zachowuje się konsument.
+
+```{r symulacje}
+# Bazą symulacji jest użyteczność (part-worth) każdej cechy
+sim <- partworth %>% select(cecha, typ, utility, share)
+
+# ── 1. MaxUtility (first-choice): cała "masa" idzie do najlepszej cechy ───────
+sim_max <- sim %>%
+  mutate(udzial_max = ifelse(utility == max(utility), 100, 0))
+
+# ── 2. BTL (Bradley-Terry-Luce): udział proporcjonalny do użyteczności ────────
+sim <- sim %>%
+  mutate(
+    u_pos      = utility - min(utility) + 0.1,        # przesuń do dodatnich
+    udzial_btl = round(100 * u_pos / sum(u_pos), 1)
+  )
+
+# ── 3. Logit: udział proporcjonalny do exp(użyteczność) ──────────────────────
+sim <- sim %>%
+  mutate(udzial_logit = round(100 * exp(utility) / sum(exp(utility)), 1))
+
+sim %>%
+  arrange(desc(udzial_logit)) %>%
+  select(Cecha = cecha, `Użyteczność` = utility,
+         `BTL (%)` = udzial_btl, `Logit (%)` = udzial_logit) %>%
+  kbl(caption = "Symulacja udziału cech w rynku — modele BTL i Logit") %>%
+  kable_styling(bootstrap_options = c("striped","hover"), full_width = FALSE) %>%
+  footnote(general = "MaxUtility przypisałby 100% jednej najlepszej cesze (first-choice).")
+```
+
+```{r symulacje-wykres, fig.cap="Porównanie modeli symulacji udziału"}
+sim %>%
+  select(cecha, BTL = udzial_btl, Logit = udzial_logit) %>%
+  pivot_longer(-cecha, names_to = "model", values_to = "udzial") %>%
+  ggplot(aes(x = reorder(cecha, udzial), y = udzial, fill = model)) +
+  geom_col(position = "dodge", alpha = .85) +
+  coord_flip() +
+  scale_fill_manual(values = c("BTL" = "#378ADD", "Logit" = "#1D9E75")) +
+  labs(title    = "Symulowany udział cech w rynku",
+       subtitle = "Dwa modele: BTL (proporcjonalny) i Logit (wykładniczy)",
+       x = NULL, y = "Przewidywany udział (%)", fill = "Model") +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+## Analiza ceny zbudowanego produktu {#analiza-ceny}
+
+Budżet wynosił 40 zł. Ale wielu respondentów wybrało tylko 1 albo 2 cechy. Dlatego ich realny szampon był tańszy. W tej sekcji pokazujemy faktyczne ceny i to, ile budżetu zostało niewykorzystane. To ważny wniosek o skłonności do zapłaty (willingness-to-pay).
+
+```{r analiza-ceny}
+ceny_df <- koszyki %>%
+  mutate(
+    koszt_calk    = koszt + 12,              # + baza
+    niewykorzystany = 40 - koszt_calk
+  )
+
+ceny_df %>%
+  summarise(
+    `Średni koszt (zł)`        = round(mean(koszt_calk), 1),
+    `Mediana (zł)`             = median(koszt_calk),
+    `Min (zł)`                 = min(koszt_calk),
+    `Max (zł)`                 = max(koszt_calk),
+    `Śr. niewykorzystany budżet (zł)` = round(mean(niewykorzystany), 1),
+    `% mieszczących się w 40 zł` = round(100 * mean(koszt_calk <= 40))
+  ) %>%
+  pivot_longer(everything(), names_to = "Miara", values_to = "Wartość") %>%
+  kbl(caption = "Realny koszt zbudowanego szamponu (budżet był 40 zł)") %>%
+  kable_styling(bootstrap_options = c("striped","hover"), full_width = FALSE)
+```
+
+```{r analiza-ceny-wg-cech, fig.cap="Średni koszt szamponu wg liczby wybranych cech"}
+ceny_df %>%
+  group_by(n_cech) %>%
+  summarise(sredni_koszt = mean(koszt_calk), N = n(), .groups = "drop") %>%
+  ggplot(aes(x = factor(n_cech), y = sredni_koszt)) +
+  geom_col(fill = "#185FA5", alpha = .85) +
+  geom_text(aes(label = paste0(round(sredni_koszt), " zł\n(n=", N, ")")),
+            vjust = -.3, size = 3.2) +
+  geom_hline(yintercept = 40, linetype = "dashed", color = "#A32D2D") +
+  annotate("text", x = 0.7, y = 41.5, label = "Budżet 40 zł",
+           color = "#A32D2D", size = 3, hjust = 0) +
+  scale_y_continuous(limits = c(0, 50)) +
+  labs(title    = "Realny koszt szamponu rośnie z liczbą cech",
+       subtitle = "Wielu wybrało 1–2 cechy → produkt tańszy niż budżet",
+       x = "Liczba wybranych cech", y = "Średni koszt całkowity (zł)") +
+  theme_minimal()
+```
+
+```{r analiza-ceny-histogram, fig.cap="Rozkład niewykorzystanego budżetu"}
+ceny_df %>%
+  ggplot(aes(x = niewykorzystany)) +
+  geom_histogram(binwidth = 4, fill = "#0F6E56", alpha = .8, color = "white") +
+  geom_vline(xintercept = mean(ceny_df$niewykorzystany),
+             linetype = "dashed", color = "#A32D2D", linewidth = .8) +
+  annotate("text", x = mean(ceny_df$niewykorzystany), y = Inf,
+           label = paste0("Średnio ", round(mean(ceny_df$niewykorzystany), 1), " zł"),
+           vjust = 1.5, hjust = -.1, color = "#A32D2D", size = 3.2) +
+  labs(title    = "Ile budżetu respondenci NIE wykorzystali",
+       subtitle = "Dodatnia wartość = szampon tańszy niż limit 40 zł",
+       x = "Niewykorzystany budżet (zł)", y = "Liczba respondentów") +
+  theme_minimal()
+```
+
+> **Interpretacja conjoint:** *(uzupełnij. Napisz, które cechy mają najwyższy choice share i part-worth. Które wygrywają w trade-offie cena/popularność. Co pokazują symulacje rynkowe. Ile realnie kosztował zbudowany szampon przy budżecie 40 zł.)*
+
+------------------------------------------------------------------------
+
+# Klastrowanie danych {#klastrowanie}
+
+Dwa podejścia: (A) segmentacja po cechach demograficzno-zakupowych, (B) segmentacja po koszykach wyborów MBC.
+
+## A. Klastrowanie demograficzno-zakupowe
+
+```{r cluster-przygotowanie}
+df_clust <- df %>%
+  transmute(
+    plec_num   = as.integer(plec),
+    wiek_num   = as.integer(wiek),
+    czest_num  = as.integer(czestotliwosc),
+    budzet_num = as.integer(budzet),
+    miej_drog  = as.integer(miejsce_zakupu == "Drogeria")
+  ) %>%
+  mutate(across(everything(), ~ ifelse(is.na(.), median(., na.rm = TRUE), .))) %>%
+  scale()
+
+rownames(df_clust) <- df$id
+```
+
+```{r cluster-elbow, fig.cap="Metoda łokcia — dobór liczby skupień", fig.height=4}
+fviz_nbclust(df_clust, kmeans, method = "wss") +
+  labs(title = "Metoda łokcia", x = "Liczba skupień k",
+       y = "Suma kwadratów wewnątrzgrupowych") +
+  theme_minimal()
+```
+
+```{r cluster-kmeans}
+set.seed(42)
+k_opt <- 3
+km <- kmeans(df_clust, centers = k_opt, nstart = 25)
+df$klaster <- factor(km$cluster)
+```
+
+```{r cluster-wiz, fig.cap="Mapa skupień (PCA biplot)"}
+fviz_cluster(km, data = df_clust,
+             ellipse.type = "convex", palette = "jco",
+             ggtheme = theme_minimal()) +
+  labs(title = paste0("Segmentacja k-means (k = ", k_opt, ")"))
+```
+
+```{r cluster-profil}
+df %>%
+  group_by(klaster) %>%
+  summarise(
+    N = n(),
+    `% kobiet` = round(mean(plec == "Kobieta", na.rm = TRUE) * 100, 1),
+    `Wiek (dom.)` = names(sort(table(wiek), decreasing = TRUE))[1],
+    `Budżet (dom.)` = names(sort(table(budzet), decreasing = TRUE))[1],
+    `Miejsce (dom.)` = names(sort(table(miejsce_zakupu), decreasing = TRUE))[1]
+  ) %>%
+  kbl(caption = "Profil segmentów demograficznych") %>%
+  kable_styling(bootstrap_options = c("striped","hover"), full_width = FALSE)
+```
+
+## B. Klastrowanie po koszykach MBC
+
+```{r mbc-bin}
+mbc_bin <- mbc_long %>%
+  mutate(wybrane = 1) %>%
+  select(id, cecha, wybrane) %>%
+  distinct() %>%
+  pivot_wider(names_from = cecha, values_from = wybrane, values_fill = 0)
+
+mbc_mat <- mbc_bin %>% select(-id) %>% as.matrix()
+rownames(mbc_mat) <- paste0("R", mbc_bin$id)
+```
+
+```{r mbc-cluster, fig.cap="Segmenty konsumentów wg koszyków MBC"}
+set.seed(42)
+k_mbc <- 3
+km_mbc <- kmeans(mbc_mat, centers = k_mbc, nstart = 25)
+
+fviz_cluster(km_mbc, data = mbc_mat,
+             ellipse.type = "convex", palette = "jco",
+             ggtheme = theme_minimal()) +
+  labs(title = paste0("Segmenty wg koszyków MBC (k = ", k_mbc, ")"))
+```
+
+```{r mbc-profil}
+as_tibble(mbc_mat) %>%
+  mutate(segment = factor(km_mbc$cluster)) %>%
+  group_by(segment) %>%
+  summarise(across(everything(), ~ round(mean(.) * 100)), N = n()) %>%
+  pivot_longer(-c(segment, N), names_to = "cecha", values_to = "udzial") %>%
+  group_by(segment) %>%
+  slice_max(udzial, n = 3) %>%
+  summarise(N = first(N),
+            `Dominujące cechy` = paste(cecha, collapse = ", "),
+            .groups = "drop") %>%
+  kbl(caption = "Profil segmentów MBC — 3 najczęstsze cechy") %>%
+  kable_styling(bootstrap_options = c("striped","hover"), full_width = FALSE)
+```
+
+> **Interpretacja klastrowania:** *(uzupełnij. Napisz, ile wyszło segmentów i czym się różnią. Sprawdź, czy segmenty z MBC pokrywają się z demograficznymi.)*
+
+------------------------------------------------------------------------
+
+# Ordynacja danych {#ordynacja}
+
+Używamy trzech technik redukcji wymiarowości. PCA robimy na ocenach składników. Analizę korespondencji (CA) i skalowanie wielowymiarowe (MDS/NMDS) robimy na wyborach MBC.
+
+## PCA — oceny składników
+
+```{r pca-dane}
+mat_pca <- df %>%
+  select(all_of(skl_cols)) %>%
+  mutate(across(everything(), ~ ifelse(is.na(.), median(., na.rm = TRUE), .)))
+
+skl_labels <- c(sls = "Bez SLS", parabeny = "Bez parabenów",
+                naturalne = "Naturalne", keratyna = "Keratyna",
+                olejki = "Olejki", vegan = "Vegan")
+colnames(mat_pca) <- unname(skl_labels[colnames(mat_pca)])
+rownames(mat_pca) <- paste0("R", df$id)
+
+pca <- PCA(mat_pca, scale.unit = TRUE, graph = FALSE)
+```
+
+```{r pca-scree, fig.cap="Wykres osypiska PCA", fig.height=4}
+fviz_eig(pca, addlabels = TRUE, barfill = "#378ADD", barcolor = "white") +
+  labs(title = "Wykres osypiska — PCA składników",
+       x = "Składowa", y = "% wyjaśnionej wariancji") +
+  theme_minimal()
+```
+
+```{r pca-biplot, fig.cap="PCA biplot — respondenci i składniki"}
+fviz_pca_biplot(pca,
+                repel = TRUE,
+                col.ind = df$klaster,
+                palette = "jco",
+                col.var = "#A32D2D",
+                addEllipses = TRUE, ellipse.type = "confidence",
+                legend.title = "Segment") +
+  labs(title = "PCA: respondenci (wg segmentu) × składniki") +
+  theme_minimal()
+```
+
+## Analiza korespondencji (CA)
+
+```{r ca-macierz}
+mat_ca <- df %>%
+  select(all_of(skl_cols)) %>%
+  pivot_longer(everything(), names_to = "skladnik", values_to = "ocena") %>%
+  filter(!is.na(ocena)) %>%
+  mutate(skladnik = recode(skladnik, !!!skl_labels),
+         ocena = factor(ocena, levels = 1:5, labels = paste0("Ocena_", 1:5))) %>%
+  count(skladnik, ocena) %>%
+  pivot_wider(names_from = ocena, values_from = n, values_fill = 0) %>%
+  column_to_rownames("skladnik")
+
+ca <- CA(mat_ca, graph = FALSE)
+```
+
+```{r ca-biplot, fig.cap="CA biplot — składniki × rozkład ocen"}
+fviz_ca_biplot(ca, repel = TRUE,
+               col.row = "#378ADD", col.col = "#A32D2D",
+               ggtheme = theme_minimal()) +
+  labs(title = "Analiza korespondencji: składniki × oceny",
+       subtitle = "Bliskość = silne skojarzenie składnika z daną oceną")
+```
+
+```{r ca-inercja}
+get_eigenvalue(ca) %>%
+  head(4) %>%
+  kbl(digits = 2, caption = "Wartości własne CA — % inercji",
+      col.names = c("Wartość własna", "% inercji", "Skumulowany %")) %>%
+  kable_styling(bootstrap_options = c("striped"), full_width = FALSE)
+```
+
+## MDS i NMDS — wybory MBC
+
+```{r mds, fig.cap="MDS — mapa respondentów wg koszyków MBC"}
+dist_mbc <- dist(mbc_mat, method = "binary")
+mds <- cmdscale(dist_mbc, eig = TRUE, k = 2)
+
+mds_df <- as.data.frame(mds$points) %>%
+  set_names(c("Dim1", "Dim2")) %>%
+  mutate(respondent = rownames(mbc_mat),
+         segment = factor(km_mbc$cluster))
+
+ggplot(mds_df, aes(x = Dim1, y = Dim2, color = segment, label = respondent)) +
+  geom_point(size = 3) +
+  geom_text_repel(size = 2.8, max.overlaps = 15) +
+  stat_ellipse(aes(group = segment), type = "norm", level = 0.9,
+               linetype = 2, linewidth = .6) +
+  scale_color_brewer(palette = "Set1") +
+  labs(title = "MDS respondentów wg koszyków MBC",
+       subtitle = "Odległość binarna (Jaccard), kolor = segment",
+       x = "Wymiar 1", y = "Wymiar 2", color = "Segment") +
+  theme_minimal()
+```
+
+```{r nmds, fig.cap="NMDS — vegan::metaMDS", results="hide"}
+set.seed(123)
+nmds <- metaMDS(mbc_mat, distance = "jaccard", k = 2, trace = FALSE,
+                trymax = 50, autotransform = FALSE)
+
+nmds_df <- as.data.frame(scores(nmds, display = "sites")) %>%
+  set_names(c("NMDS1", "NMDS2")) %>%
+  mutate(respondent = rownames(mbc_mat),
+         segment = factor(km_mbc$cluster))
+```
+
+```{r nmds-plot, fig.cap="NMDS respondentów wg koszyków MBC"}
+ggplot(nmds_df, aes(x = NMDS1, y = NMDS2, color = segment, label = respondent)) +
+  geom_point(size = 3) +
+  geom_text_repel(size = 2.8, max.overlaps = 15) +
+  scale_color_brewer(palette = "Set1") +
+  labs(title = paste0("NMDS (stress = ", round(nmds$stress, 3), ")"),
+       subtitle = "Stress < 0.1 bardzo dobre, < 0.2 akceptowalne",
+       x = "NMDS1", y = "NMDS2", color = "Segment") +
+  theme_minimal()
+```
+
+> **Interpretacja ordynacji:** *(uzupełnij. Napisz, co wyjaśniają PC1 i PC2. Które składniki skupiają wysokie oceny w CA. Czy segmenty MBC rozdzielają się na mapach MDS/NMDS.)*
+
+------------------------------------------------------------------------
+
+# Deklaracje vs. realne wybory
+
+Porównujemy to, co ludzie deklarowali, z tym, co naprawdę wybrali. Bierzemy deklarowaną ważność składników (pyt. 6, skala 1–5) i zestawiamy ją z realnym wyborem pod budżetem (pyt. 9). Tam, gdzie się różnią, widać różnicę między tym, co ludzie mówią, a co robią.
+
+```{r deklaracje-vs-wybory, fig.cap="Deklarowana ważność vs. realny wybór"}
+mapowanie <- tibble::tribble(
+  ~cecha_mbc,                         ~kol,
+  "Bez SLS / SLES",                   "sls",
+  "Naturalne / roślinne składniki",   "naturalne",
+  "Keratyna",                         "keratyna",
+  "Olejki – arganowy, kokosowy",      "olejki",
+  "Certyfikat vegan / cruelty-free",  "vegan"
+)
+
+porownanie <- mapowanie %>%
+  rowwise() %>%
+  mutate(deklaracja = mean(df[[kol]], na.rm = TRUE)) %>%
+  ungroup() %>%
+  left_join(choice_share, by = c("cecha_mbc" = "cecha")) %>%
+  mutate(deklaracja_norm = round(100 * (deklaracja - 1) / 4, 1))
+
+porownanie %>%
+  select(cecha_mbc, deklaracja_norm, share) %>%
+  pivot_longer(c(deklaracja_norm, share), names_to = "miara", values_to = "wartosc") %>%
+  mutate(miara = recode(miara,
+                        deklaracja_norm = "Deklaracja (pyt.6)",
+                        share = "Wybór (pyt.9)")) %>%
+  ggplot(aes(x = reorder(cecha_mbc, wartosc), y = wartosc, fill = miara)) +
+  geom_col(position = "dodge", alpha = .85) +
+  coord_flip() +
+  scale_fill_manual(values = c("Deklaracja (pyt.6)" = "#85B7EB",
+                               "Wybór (pyt.9)" = "#1D9E75")) +
+  labs(title = "Deklaracje vs. realne wybory",
+       subtitle = "Obie miary znormalizowane do 0–100%",
+       x = NULL, y = "Wartość (%)", fill = NULL) +
+  theme_minimal() + theme(legend.position = "bottom")
+```
+
+------------------------------------------------------------------------
+
+# Podsumowanie i wnioski
+
+## Conjoint
+
+*(uzupełnij. Napisz, które cechy są najważniejsze wg choice share i part-worth. Opisz idealny produkt rynku i trade-offy cena/popularność. Dodaj wnioski z symulacji BTL/Logit. Najważniejszy wynik o cenie: budżet wynosił 40 zł, ale średni szampon kosztował tylko około 31 zł. Wielu wybrało 1 albo 2 cechy, więc realnie produkt był tańszy niż limit. Średnio około 9 zł budżetu zostało niewykorzystane.)*
+
+## Klastrowanie
+
+*(uzupełnij. Napisz, ile wyszło segmentów i jak je opisać. Zrób to osobno dla segmentów demograficznych i dla tych z koszyków MBC.)*
+
+## Ordynacja
+
+*(uzupełnij. Napisz, jakie są główne wymiary PCA i MDS. Opisz strukturę preferencji na mapach i wynik CA.)*
+
+## Ograniczenia
+
+- Próba liczy 36 osób i nie jest losowa. Większość to osoby w wieku 15–34 lata. Dlatego wyniki traktujemy jako eksploracyjne.
+- Przy składnikach (np. SLS, parabeny) padało dużo odpowiedzi „Nie wiem co to". To zmniejsza liczbę obserwacji w analizie składników.
+
+------------------------------------------------------------------------
+
+# Załącznik: kod R
+
+```{r kod, ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE}
+```
