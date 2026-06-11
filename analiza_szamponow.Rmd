@@ -108,6 +108,16 @@ bind_rows(
   collapse_rows(columns = 1, valign = "top")
 ```
 
+Próba liczy 36 osób. Płeć rozkłada się prawie po równo. Mamy 18 mężczyzn, 17 kobiet i 1 osobę, która nie chciała podać. Pod tym względem grupa jest zbalansowana.
+
+Gorzej z wiekiem. Aż 25 osób to przedział 15-24 lata, a kolejne 10 to 25-34. Razem daje to 35 z 36 osób poniżej 35. roku życia. Widać po tym, że ankietę wypełniali głównie studenci i ich znajomi. To typowa próba wygodna, czyli zebrana wśród osób, do których mieliśmy łatwy dostęp.
+
+Częstotliwość mycia włosów dzieli się równo. Po 16 osób myje włosy codziennie albo co 2-3 dni. To razem 32 osoby, więc większość dba o włosy regularnie.
+
+Miejsce zakupu zdominowała drogeria. Wybrało ją 29 z 36 osób. Reszta opcji (apteka, salon, sklep internetowy, supermarket) pojawia się pojedynczo. To pasuje do młodej próby, bo drogerie typu Rossmann czy Hebe są popularne właśnie w tej grupie.
+
+Budżet skupia się w środku. Najwięcej osób wydaje 21-35 zł (14 osób) i 10-20 zł (12 osób). Skrajne przedziały są rzadkie. Tylko 1 osoba deklaruje wydatki powyżej 60 zł. To też pasuje do studenckiej kieszeni.
+
 ------------------------------------------------------------------------
 
 # Conjoint — menu-based (pytanie 9) {#conjoint}
@@ -177,6 +187,18 @@ choice_share %>%
   kable_styling(bootstrap_options = c("striped","hover"), full_width = FALSE)
 ```
 
+Choice share pokazuje, jaki procent osób włączył daną cechę do swojego idealnego szamponu. Im wyższy słupek, tym częściej ludzie wybierali tę cechę.
+
+Na czele są dwie cechy z wynikiem 38,9%. To marka fryzjerska i naturalne składniki. Wybrało je po 14 z 36 osób. Tuż za nimi są regeneracja zniszczonych włosów i keratyna, obie po 36,1% (13 wyborów). To pokazuje, że ludzie najbardziej cenią skuteczność i pielęgnację.
+
+Wynik marki fryzjerskiej warto opatrzyć zastrzeżeniem. W ankiecie nie sprecyzowaliśmy, że chodzi o markę premium czy high end. Przez to respondenci mogli rozumieć ją po prostu jako markę znaną z produkcji kosmetyków do włosów, na przykład Syoss. To mogło zawyżyć jej wynik. Gdybyśmy zaznaczyli, że mówimy o droższej, profesjonalnej marce, choice share mógłby wyjść niższy.
+
+Środek stawki zajmują certyfikat vegan i olejki, oba po 25%. Bez SLS wybrało 22,2% osób.
+
+Najsłabiej wypadł format szampon w kostce. Wybrało go tylko 7 osób, czyli 19,4%. Mimo że jest najtańszy (5 zł), ludzie rzadko po niego sięgali. To ciekawy wynik, bo pokazuje, że niska cena sama w sobie nie przekonuje. Wracamy do tego w analizie trade-off.
+
+Co ważne, na pierwszym miejscu znalazły się dwie różne cenowo cechy. Marka fryzjerska kosztuje 8 zł, a naturalne składniki aż 12 zł. Mimo wyższej ceny naturalne składniki były wybierane tak samo często. To znaczy, że ludzie są gotowi za nie dopłacić.
+
 ## Trade-off: cena vs. popularność
 
 Tu patrzymy na cenę i popularność razem. Cecha droga, a często wybierana, ma dużą realną wartość. Cecha tania, ale ignorowana, to martwy atrybut.
@@ -205,6 +227,24 @@ choice_share %>%
        x = NULL, y = "Choice share / cena", fill = "Typ") +
   theme_minimal() + theme(legend.position = "bottom")
 ```
+
+**Trade-off cena i popularność**
+
+Ten wykres łączy dwie rzeczy naraz. Na osi poziomej jest cena cechy, a na pionowej choice share. Im wyżej i bardziej w prawo, tym lepiej. Taka cecha jest droga, a i tak często wybierana, czyli ma dużą realną wartość.
+
+Najlepiej wypadają naturalne składniki. Są najdroższe (12 zł), a mimo to mają najwyższy choice share. Ludzie naprawdę chcą za nie zapłacić. Wysoko są też marka fryzjerska, keratyna i regeneracja. Te trzy są tańsze, ale równie popularne.
+
+Na dole wykresu jest format szampon w kostce. Jest najtańszy (5 zł), ale i tak prawie nikt go nie wybrał. To potwierdza wcześniejszy wniosek. Niska cena sama w sobie nie przyciąga, jeśli cecha nie jest dla ludzi atrakcyjna.
+
+Bez SLS, olejki i vegan siedzą w środku. Średnia cena, średnia popularność.
+
+**Efektywność cenowa**
+
+Tu liczymy, ile choice share przypada na 1 zł ceny. To pokazuje, co najbardziej opłaca się dać w produkcie. Im wyższy słupek, tym więcej "chęci zakupu" dostajemy za każdą złotówkę.
+
+Wygrywa regeneracja zniszczonych włosów z wynikiem 6,02. Jest tania (6 zł) i popularna, więc daje najlepszy stosunek wartości do ceny. Tuż za nią są marka fryzjerska (4,86) i keratyna (4,51).
+
+Na końcu są naturalne składniki (3,24) i vegan (2,78). To ciekawe, bo naturalne składniki były najpopularniejsze. Ale przez wysoką cenę (12 zł) ich efektywność spada. Innymi słowy, ludzie je kochają, ale są drogie, więc każda złotówka ma mniejsze przełożenie.
 
 ## Symulacja idealnego produktu
 
@@ -251,6 +291,26 @@ koszyki %>%
        x = "Koszt całkowity (zł)", y = "Liczba respondentów") +
   theme_minimal()
 ```
+
+**Najpopularniejsze kombinacje cech**
+
+Tu patrzymy, jakie zestawy cech ludzie składali najczęściej. I tu wychodzi ciekawa rzecz. Żadna kombinacja nie powtarza się więcej niż 2 razy. To znaczy, że prawie każdy budował swój szampon inaczej. Nie ma jednego przepisu, który pasuje wszystkim. Preferencje są mocno indywidualne.
+
+Widać za to, że pewne cechy lubią się ze sobą. Często wracają zestawy oparte na regeneracji, marce fryzjerskiej i naturalnych składnikach. Pojawiają się też pary typu vegan plus olejki, czyli "kierunek eko".
+
+**Idealny szampon rynku**
+
+Tę tabelę zbudowaliśmy inaczej. Wzięliśmy cechy o najwyższym choice share i dokładaliśmy je po kolei, aż wyczerpaliśmy budżet. Baza to 12 zł, a na dodatki mamy 28 zł.
+
+Wyszedł szampon z trzema cechami: marka fryzjerska, naturalne składniki i regeneracja. Razem kosztuje 38 zł, czyli mieści się w budżecie 40 zł. To jest produkt, który teoretycznie trafiłby w najszerszy rynek, bo łączy najczęściej wybierane cechy.
+
+**Rozkład całkowitego kosztu**
+
+Ten wykres odpowiada na pytanie, ile naprawdę kosztowały zbudowane szampony. Czerwona linia to budżet 40 zł.
+
+Większość szamponów mieści się między 25 a 38 zł. Szczyt wykresu jest przy około 30 zł. To znaczy, że typowy respondent zbudował szampon tańszy niż limit. Niewiele osób dobiło do samego budżetu, a tylko jedna go lekko przekroczyła.
+
+Z tego płynie ważny wniosek. Ludzie nie wybierali cech, aby zmaksymalizować stosunek cena/cechy, tylko brali tyle, ile naprawdę chcieli. Średnio zostało im jeszcze trochę budżetu. To dobrze świadczy o jakości danych, bo widać, że respondenci podchodzili do zadania świadomie, a nie zaznaczali wszystkiego przypadkowo.
 
 ## Użyteczności cząstkowe (part-worths) {#part-worths}
 
@@ -308,6 +368,24 @@ broom::tidy(model_logit) %>%
   footnote(general = "Ujemny współczynnik przy cenie = im drożej, tym rzadziej wybierana.")
 ```
 
+**Użyteczności cząstkowe (part-worths)**
+
+Użyteczność cząstkowa mówi, ile dana cecha "wnosi" do produktu. To nasz odpowiednik part-worthów z klasycznego conjoint. Policzyliśmy ją jako logit choice share. Im wyższa wartość, tym cenniejsza cecha.
+
+Ważna uwaga do odczytu. Wszystkie wartości są ujemne, ale to nie znaczy, że cechy są złe. Tak działa logit. Wartość schodzi poniżej zera zawsze, gdy daną cechę wybrała mniej niż połowa osób. U nas żadna cecha nie przekroczyła 39%, więc wszystkie wyszły na minusie. Liczy się kolejność, a nie sam znak. Im bliżej zera, tym lepiej.
+
+Na górze są naturalne składniki i marka fryzjerska (-0,452). To cechy o najwyższej użyteczności. Tuż za nimi keratyna i regeneracja (-0,571). Te cztery cechy najmocniej podnoszą atrakcyjność szamponu.
+
+Na dole jest format szampon w kostce (-1,424) i bez SLS (-1,254). Mają najniższą użyteczność, bo wybierało je najmniej osób. To spójne z choice share, gdzie też były na końcu.
+
+**Model wyboru cechy**
+
+Dodatkowo sprawdziliśmy modelem regresji logistycznej, jak na wybór cechy wpływa jej cena i typ. Tu wychodzi ciekawa rzecz. Współczynnik przy cenie jest dodatni (0,116), choć nieistotny statystycznie (p = 0,138). To znaczy, że w naszych danych wyższa cena wcale nie zniechęcała do wyboru. Wręcz lekko szła w parze z większą popularnością.
+
+Możliwe wytłumaczenie jest takie, że ludzie traktowali wyższą cenę jako sygnał lepszej jakości. Droższe składniki jak naturalne czy keratyna kojarzą się z czymś lepszym. Trzeba jednak pamiętać, że wynik nie jest istotny statystycznie, więc to raczej obserwacja niż mocny dowód. Przy próbie 36 osób trudno o pewne wnioski.
+
+Typ cechy też nie okazał się istotny. Żadna kategoria (format, marka, składnik) nie wpływała znacząco na wybór.
+
 ## Symulacje rynkowe {#symulacje}
 
 To nasz odpowiednik symulacji `caMaxUtility`, `caBTL` i `caLogit` z projektu pizzowego. Mamy trzy modele. Każdy przewiduje udział cechy w rynku. Różnią się tym, jak zakładają, że zachowuje się konsument.
@@ -354,6 +432,26 @@ sim %>%
   theme_minimal() +
   theme(legend.position = "bottom")
 ```
+
+**Symulacja udziału cech w rynku**
+
+Tu robimy symulację rynkową. Zadajemy pytanie: gdyby każda cecha "walczyła" o udział w rynku, ile by go zdobyła. To nasz odpowiednik symulacji z projektu pizzowego. Mamy trzy modele, które różnią się tym, jak ostro premiują najlepsze cechy.
+
+Pierwszy to MaxUtility. Zakłada zachowanie bezkompromisowe. Konsument bierze tylko jedną, najlepszą cechę, a reszta dostaje zero. To skrajne założenie, dlatego pokazujemy je tylko w nocie pod tabelą.
+
+Drugi to BTL. Dzieli rynek proporcjonalnie do użyteczności. Lepsza cecha dostaje więcej, ale słabsze też mają swój kawałek. To model łagodny i realistyczny.
+
+Trzeci to Logit. Działa podobnie do BTL, ale używa funkcji wykładniczej. Przez to mocniej premiuje cechy najlepsze i ostrzej odcina słabe.
+
+**Co wyszło**
+
+Oba modele dają tę samą kolejność. Na czele są naturalne składniki i marka fryzjerska. W modelu BTL mają po 20,3% udziału, a w Logit po 17,7%. Tuż za nimi keratyna i regeneracja. To te same cztery cechy, które wygrywały już w choice share i part-worthach. Wyniki są więc spójne.
+
+Na dole jest format szampon w kostce. W BTL ma tylko 1,9%, a w Logit 6,7%. Bez SLS też wypada słabo.
+
+**Różnica między modelami**
+
+Warto zauważyć jedną rzecz. W modelu BTL rozstęp między cechami jest większy. Najlepsze mają dużo, najsłabsze prawie nic (kostka 1,9%). W modelu Logit różnice są bardziej wygładzone, bo nawet słabe cechy dostają trochę więcej (kostka 6,7%). To pokazuje, jak samo założenie modelu zmienia obraz rynku, mimo że dane są te same.
 
 ## Analiza ceny zbudowanego produktu {#analiza-ceny}
 
@@ -413,7 +511,25 @@ ceny_df %>%
   theme_minimal()
 ```
 
-> **Interpretacja conjoint:** *(uzupełnij. Napisz, które cechy mają najwyższy choice share i part-worth. Które wygrywają w trade-offie cena/popularność. Co pokazują symulacje rynkowe. Ile realnie kosztował zbudowany szampon przy budżecie 40 zł.)*
+**Realny koszt zbudowanego szamponu**
+
+Budżet wynosił 40 zł, ale prawie nikt go nie wykorzystał do końca. Średni szampon kosztował tylko 31,1 zł, a mediana 31 zł. Najtańszy miał 17 zł, najdroższy 45 zł. Średnio zostawało jeszcze 8,9 zł niewykorzystanego budżetu. Aż 97% szamponów zmieściło się w limicie 40 zł.
+
+To pokazuje, że ludzie nie traktowali budżetu jak celu do dobicia. Brali tyle cech, ile naprawdę chcieli, i często zostawało im miejsce na więcej.
+
+**Koszt rośnie z liczbą cech**
+
+Ten wykres jest dość oczywisty, ale ważny. Im więcej cech ktoś wybrał, tym droższy był jego szampon. Osoby z jedną cechą zbudowały produkt średnio za 20 zł. Z dwiema cechami za 28 zł. Z trzema za 36 zł. Z czterema za 42 zł, czyli już ponad budżet.
+
+Ciekawa jest liczba osób w każdej grupie. Najwięcej, bo 17 osób, wybrało 3 cechy. To była najczęstsza strategia. Tylko 2 osoby wybrały komplet 4 cech i jako jedyne przekroczyły budżet. Pokazuje to, że większość świadomie się ograniczała.
+
+**Ile budżetu zostało niewykorzystane**
+
+Ten histogram pokazuje to samo z innej strony. Czerwona linia to średnia, czyli 8,9 zł. Dodatnia wartość znaczy, że szampon był tańszy niż limit.
+
+Większość osób zostawiła od 0 do 15 zł niewykorzystane. Tylko kilka osób było blisko zera albo na minusie, czyli wykorzystało cały budżet lub go lekko przekroczyło. Reszta miała spory zapas.
+
+Z tego płynie najważniejszy wniosek całej analizy ceny. Ludzie nie chcą płacić za wszystko. Wybierają świadomie i często wolą prostszy, tańszy produkt niż naładowany wszystkimi dodatkami. Dla firmy to sygnał, że nie warto pakować do szamponu maksimum cech i windować ceny. Lepiej trafić w te kilka, które naprawdę się liczą.
 
 ------------------------------------------------------------------------
 
@@ -473,6 +589,30 @@ df %>%
   kable_styling(bootstrap_options = c("striped","hover"), full_width = FALSE)
 ```
 
+**Klastrowanie demograficzno-zakupowe**
+
+W tej części dzielimy respondentów na segmenty metodą k-means. Bierzemy pod uwagę cechy demograficzne i zakupowe: płeć, wiek, częstotliwość mycia, miejsce zakupu i budżet.
+
+**Metoda łokcia**
+
+Najpierw musimy zdecydować, na ile grup podzielić próbę. Służy do tego metoda łokcia. Szukamy na wykresie miejsca, gdzie krzywa się "załamuje", czyli gdzie dodawanie kolejnych skupień przestaje wiele zmieniać. U nas to załamanie jest przy 3, dlatego wybraliśmy podział na 3 segmenty.
+
+**Mapa skupień**
+
+Wykres pokazuje respondentów rozmieszczonych na mapie. Im bliżej siebie dwie osoby, tym bardziej podobne mają profile. Dwie osie razem wyjaśniają prawie 60% zróżnicowania w danych (38,1% i 21,5%), więc mapa dobrze oddaje strukturę.
+
+Od razu rzuca się w oczy jeden punkt z prawej strony, oznaczony numerem 35. To outlier, czyli osoba mocno odstająca od reszty. Tworzy własny segment, do którego należy tylko ona.
+
+**Profil segmentów**
+
+Z podziału wyszły trzy grupy bardzo różnej wielkości.
+
+Segment 2 to trzon próby. Liczy 29 z 36 osób. To głównie ludzie 15-24 lata, kupujący w drogerii, z budżetem 21-35 zł. Płeć jest tu zbalansowana. To typowy młody konsument i właściwie on definiuje całe badanie.
+
+Segment 1 jest mniejszy, liczy 6 osób. Też młodzi, ale różnią się miejscem zakupu (supermarket zamiast drogerii) i niższym budżetem (poniżej 10 zł). To bardziej oszczędna grupa.
+
+Segment 3 to wspomniany outlier. Jedna osoba, 55 lat lub więcej, kupująca przez internet. Wyraźnie różni się wiekiem od reszty, dlatego algorytm wydzielił ją osobno.
+
 ## B. Klastrowanie po koszykach MBC
 
 ```{r mbc-bin}
@@ -512,7 +652,23 @@ as_tibble(mbc_mat) %>%
   kable_styling(bootstrap_options = c("striped","hover"), full_width = FALSE)
 ```
 
-> **Interpretacja klastrowania:** *(uzupełnij. Napisz, ile wyszło segmentów i czym się różnią. Sprawdź, czy segmenty z MBC pokrywają się z demograficznymi.)*
+**Klastrowanie po koszykach MBC**
+
+To druga, ciekawsza segmentacja. Tym razem nie dzielimy ludzi po wieku czy budżecie, tylko po tym, co realnie wybrali w pytaniu 9. Dwie osoby trafiają do jednego segmentu, jeśli zbudowały podobny szampon.
+
+I tu od razu widać różnicę. Segmenty wyszły o wiele bardziej wyrównane niż przy klastrowaniu demograficznym. Trzy grupy liczą po 13, 11 i 12 osób. To znaczy, że ludzie różnią się głównie preferencjami produktu, a nie metryczką. Mapa też dobrze oddaje strukturę, bo dwie osie wyjaśniają łącznie 45% zróżnicowania (26,5% i 18,4%).
+
+**Trzy segmenty**
+
+Segment 1 liczy 13 osób. Dominują u nich regeneracja zniszczonych włosów, marka fryzjerska i naturalne składniki. To grupa nastawiona na skuteczność i pielęgnację. Chcą szamponu, który naprawia i działa.
+
+Segment 2 liczy 11 osób. Ich koszyki to naturalne składniki, bez SLS i olejki. To wyraźnie kierunek eko i naturalny. Zwracają uwagę na skład i unikają chemii.
+
+Segment 3 liczy 12 osób. Wybierają keratynę, markę fryzjerską, vegan i format w kostce. To grupa najbardziej mieszana, łącząca pielęgnację z modnymi rozwiązaniami jak vegan czy kostka.
+
+**Dlaczego to ważne**
+
+Ta segmentacja jest cenniejsza niż demograficzna. Pokazuje, że nawet w jednorodnej wiekowo próbie ludzie dzielą się na wyraźne typy konsumenckie według tego, czego chcą od szamponu. Mamy "skutecznościowych", "eko" i "mieszanych". Dla firmy to bardziej użyteczne niż podział po wieku, bo mówi wprost, jakie produkty projektować i do kogo je kierować.
 
 ------------------------------------------------------------------------
 
@@ -555,6 +711,26 @@ fviz_pca_biplot(pca,
   theme_minimal()
 ```
 
+**PCA na ocenach składników**
+
+PCA, czyli analiza głównych składowych, to technika ordynacji. Jej zadaniem jest "spłaszczenie" wielu zmiennych do dwóch wymiarów, które da się pokazać na mapie. Dzięki temu widać, którzy respondenci myślą podobnie o składnikach i które składniki idą ze sobą w parze.
+
+**Wykres osypiska**
+
+Najpierw sprawdzamy, ile wymiarów warto zostawić. Służy do tego wykres osypiska. Pierwsza składowa wyjaśnia 38,6% zróżnicowania, druga 25,9%. Razem to ponad 64%, czyli dwie osie oddają większość informacji. To wystarczy, żeby spokojnie pracować na mapie 2D.
+
+**Mapa PCA**
+
+Na wykresie są dwie rzeczy naraz. Punkty to respondenci, a czerwone strzałki to składniki. Im dłuższa strzałka, tym mocniej dany składnik różnicuje ludzi. Strzałki blisko siebie znaczą, że te składniki ludzie oceniają podobnie.
+
+Widać kilka wyraźnych grup strzałek. Bez SLS i bez parabenów idą razem w prawo i w dół. To "kierunek czystego składu", czyli unikanie chemii. Olejki i keratyna idą w prawo i do góry, to bardziej pielęgnacja i odżywianie. Vegan wystrzeliwuje osobno do góry, więc rządzi się trochę własną logiką. Naturalne składniki są pośrodku tej wiązki.
+
+Co ważne, prawie wszystkie strzałki idą w prawą stronę. To znaczy, że pierwsza oś (Dim1) oddaje po prostu ogólne "zainteresowanie składem". Osoby po prawej zwracają uwagę na składniki, osoby po lewej mniej.
+
+**Rozmieszczenie respondentów**
+
+Punkty są rozrzucone dość szeroko, co znaczy, że ludzie różnią się w ocenie składników. Nie widać tu jednak czystego podziału na segmenty kolorami. Segment 2 (żółty) jest wszędzie, bo to trzon próby. To spójne z wcześniejszą obserwacją, że demograficznie próba jest jednorodna.
+
 ## Analiza korespondencji (CA)
 
 ```{r ca-macierz}
@@ -586,6 +762,26 @@ get_eigenvalue(ca) %>%
       col.names = c("Wartość własna", "% inercji", "Skumulowany %")) %>%
   kable_styling(bootstrap_options = c("striped"), full_width = FALSE)
 ```
+
+**Analiza korespondencji (CA)**
+
+Analiza korespondencji to druga technika ordynacji. Tym razem patrzymy, jak składniki łączą się z konkretnymi ocenami. Na mapie są dwie rzeczy: niebieskie punkty to składniki, a czerwone to oceny od 1 do 5. Zasada jest prosta. Im bliżej siebie składnik i ocena, tym mocniej są ze sobą skojarzone. Czyli dany składnik najczęściej dostawał właśnie taką ocenę.
+
+**Jakość mapy**
+
+Najpierw sprawdzamy, czy mapa dobrze oddaje dane. Pierwszy wymiar wyjaśnia 57,6% zróżnicowania, a drugi 31%. Razem to prawie 89%. To bardzo dobry wynik. Dwie osie oddają niemal wszystko, co jest w danych, więc mapie można ufać.
+
+**Co pokazuje mapa**
+
+Z prawej strony widać Vegan tuż przy Ocena_1. To znaczy, że certyfikat vegan najczęściej dostawał najniższą ocenę, czyli był dla ludzi najmniej ważny. To spójne z wcześniejszymi wynikami, gdzie vegan też wypadał słabo.
+
+Po przeciwnej stronie, blisko Ocena_5, są keratyna i olejki (Ocena_3 i Ocena_4 w pobliżu). To składniki, które ludzie oceniali wysoko. Bez SLS i bez parabenów są razem z lewej strony, blisko Ocena_2. Czyli te składniki dostawały raczej niskie oceny, ale nie najniższe.
+
+Naturalne składniki siedzą blisko środka. To znaczy, że oceny były mieszane, bez wyraźnego skupienia na jednej wartości. Jednych przekonywały, innych nie.
+
+**Wniosek**
+
+CA potwierdza to, co widzieliśmy wcześniej innymi metodami. Keratyna i olejki to składniki cenione, a vegan i bez SLS wypadają słabiej. To, że różne techniki dają ten sam obraz, jest dobrym sygnałem. Znaczy, że wyniki są stabilne, a nie przypadkowe.
 
 ## MDS i NMDS — wybory MBC
 
@@ -632,7 +828,25 @@ ggplot(nmds_df, aes(x = NMDS1, y = NMDS2, color = segment, label = respondent)) 
   theme_minimal()
 ```
 
-> **Interpretacja ordynacji:** *(uzupełnij. Napisz, co wyjaśniają PC1 i PC2. Które składniki skupiają wysokie oceny w CA. Czy segmenty MBC rozdzielają się na mapach MDS/NMDS.)*
+**Analiza korespondencji (CA)**
+
+Analiza korespondencji to druga technika ordynacji. Tym razem patrzymy, jak składniki łączą się z konkretnymi ocenami. Na mapie są dwie rzeczy: niebieskie punkty to składniki, a czerwone to oceny od 1 do 5. Zasada jest prosta. Im bliżej siebie składnik i ocena, tym mocniej są ze sobą skojarzone. Czyli dany składnik najczęściej dostawał właśnie taką ocenę.
+
+**Jakość mapy**
+
+Najpierw sprawdzamy, czy mapa dobrze oddaje dane. Pierwszy wymiar wyjaśnia 57,6% zróżnicowania, a drugi 31%. Razem to prawie 89%. To bardzo dobry wynik. Dwie osie oddają niemal wszystko, co jest w danych, więc mapie można ufać.
+
+**Co pokazuje mapa**
+
+Z prawej strony widać Vegan tuż przy Ocena_1. To znaczy, że certyfikat vegan najczęściej dostawał najniższą ocenę, czyli był dla ludzi najmniej ważny. To spójne z wcześniejszymi wynikami, gdzie vegan też wypadał słabo.
+
+Po przeciwnej stronie, blisko Ocena_5, są keratyna i olejki (Ocena_3 i Ocena_4 w pobliżu). To składniki, które ludzie oceniali wysoko. Bez SLS i bez parabenów są razem z lewej strony, blisko Ocena_2. Czyli te składniki dostawały raczej niskie oceny, ale nie najniższe.
+
+Naturalne składniki siedzą blisko środka. To znaczy, że oceny były mieszane, bez wyraźnego skupienia na jednej wartości. Jednych przekonywały, innych nie.
+
+**Wniosek**
+
+CA potwierdza to, co widzieliśmy wcześniej innymi metodami. Keratyna i olejki to składniki cenione, a vegan i bez SLS wypadają słabiej. To, że różne techniki dają ten sam obraz, jest dobrym sygnałem. Znaczy, że wyniki są stabilne, a nie przypadkowe.
 
 ------------------------------------------------------------------------
 
@@ -674,26 +888,67 @@ porownanie %>%
   theme_minimal() + theme(legend.position = "bottom")
 ```
 
-------------------------------------------------------------------------
+**Deklaracje kontra realne wybory**
+
+To jest jeden z ciekawszych wykresów w całym projekcie. Porównujemy tu dwie rzeczy. Niebieski słupek to deklarowana ważność składnika z pytania 6. Czyli to, co ludzie mówili, że jest dla nich ważne. Zielony słupek to realny wybór z pytania 9, gdy musieli budować szampon pod budżetem. Obie miary sprowadziliśmy do tej samej skali 0-100%, żeby dało się je porównać.
+
+I tu widać coś ważnego. Dla każdego składnika niebieski słupek jest wyraźnie wyższy od zielonego. Czyli ludzie deklarują, że dana cecha jest dla nich ważna, ale kiedy przychodzi co do czego i trzeba zapłacić, wybierają ją dużo rzadziej.
+
+Najmocniej widać to przy "bez SLS". W deklaracji to prawie najważniejszy składnik, słupek sięga około 70%. Ale w realnym wyborze spada do zaledwie 22%. To ogromna różnica. Ludzie mówią, że chcą szamponu bez siarczanów, ale gdy trzeba za to dopłacić, rezygnują.
+
+Podobnie jest z olejkami i naturalnymi składnikami. W deklaracji wysoko, w wyborze sporo niżej.
+
+**Dlaczego to ważne**
+
+Ten wykres pokazuje klasyczne zjawisko z badań rynku. To, co ludzie mówią, nie zawsze pokrywa się z tym, co robią. W ankiecie łatwo zadeklarować, że zależy nam na czystym składzie czy ekologii. Ale przy realnym wyborze i ograniczonym budżecie decydują inne rzeczy.
+
+To jest też argument za samą metodą MBC. Gdybyśmy pytali tylko o deklaracje (pytanie 6), dostalibyśmy zawyżony obraz. Wszystko wydawałoby się ważne. Dopiero wymuszenie wyboru pod budżetem pokazało prawdziwe priorytety. To pokazuje, że dodanie pytania 9 miało sens.
 
 # Podsumowanie i wnioski
 
 ## Conjoint
 
-*(uzupełnij. Napisz, które cechy są najważniejsze wg choice share i part-worth. Opisz idealny produkt rynku i trade-offy cena/popularność. Dodaj wnioski z symulacji BTL/Logit. Najważniejszy wynik o cenie: budżet wynosił 40 zł, ale średni szampon kosztował tylko około 31 zł. Wielu wybrało 1 albo 2 cechy, więc realnie produkt był tańszy niż limit. Średnio około 9 zł budżetu zostało niewykorzystane.)*
+Najważniejsze cechy szamponu okazały się dość zgodne we wszystkich analizach. Na czele są naturalne składniki i marka fryzjerska, oba z choice share 38,9%. Tuż za nimi keratyna i regeneracja zniszczonych włosów (po 36,1%). Te same cztery cechy wychodziły na górze zarówno w choice share, jak i w part-worthach oraz symulacjach. To znaczy, że wynik jest stabilny.
+
+Symulacje rynkowe BTL i Logit potwierdziły tę kolejność. Niezależnie od założeń modelu te same cechy zdobywały największy udział w rynku. To dobry sygnał, że ranking cech jest wiarygodny, a nie przypadkowy.
+
+Z trade-offu cena i popularność wyszła ciekawa rzecz. Naturalne składniki są najdroższe (12 zł), a mimo to najczęściej wybierane. Ludzie naprawdę chcą za nie zapłacić. Z drugiej strony format w kostce, choć najtańszy (5 zł), prawie nikogo nie przekonał. To pokazuje, że niska cena sama w sobie nie sprzedaje.
+
+Idealny szampon rynku, czyli zestaw najczęściej wybieranych cech mieszczący się w budżecie, to marka fryzjerska, naturalne składniki i regeneracja. Razem kosztuje 38 zł.
+
+Najważniejszy wniosek dotyczy ceny. Budżet wynosił 40 zł, ale średni szampon kosztował tylko około 31 zł. Wielu respondentów wybrało jedną albo dwie cechy, więc realnie ich produkt był tańszy niż limit. Średnio około 9 zł budżetu zostało niewykorzystane. To pokazuje, że ludzie nie dobijają do maksimum. Wybierają świadomie i biorą tylko to, czego naprawdę chcą. Dla firmy to sygnał, że nie warto ładować do produktu wszystkich cech i windować ceny. Lepiej trafić w te kilka, które się liczą.
 
 ## Klastrowanie
 
-*(uzupełnij. Napisz, ile wyszło segmentów i jak je opisać. Zrób to osobno dla segmentów demograficznych i dla tych z koszyków MBC.)*
+Zrobiliśmy dwie segmentacje i dały bardzo różne wyniki.
+
+Segmentacja demograficzno-zakupowa wyszła słabo. Powstał jeden ogromny segment (29 z 36 osób), jeden mały (6 osób) i jeden jednoosobowy, czyli outlier. To nie wina metody, tylko próby. Jest zbyt jednorodna, bo prawie wszyscy to młode osoby w podobnym wieku i z podobnym budżetem. Przy takiej próbie trudno o ciekawy podział demograficzny.
+
+Segmentacja po koszykach MBC wyszła dużo lepiej. Tu dzieliliśmy ludzi po tym, co realnie wybrali, i powstały trzy wyrównane grupy (13, 11 i 12 osób). Segment pierwszy to osoby nastawione na skuteczność, wybierające regenerację, markę i naturalne składniki. Segment drugi to kierunek eko, czyli naturalne składniki, bez SLS i olejki. Segment trzeci jest najbardziej mieszany, łączy keratynę, vegan i format w kostce.
+
+Najważniejsza obserwacja jest taka. Nawet w jednorodnej wiekowo próbie ludzie dzielą się na wyraźne typy konsumenckie, ale dopiero wtedy, gdy patrzymy na ich wybory, a nie na metryczkę. Segmentacja po preferencjach okazała się więc cenniejsza niż demograficzna.
 
 ## Ordynacja
 
-*(uzupełnij. Napisz, jakie są główne wymiary PCA i MDS. Opisz strukturę preferencji na mapach i wynik CA.)*
+Zastosowaliśmy trzy techniki ordynacji i wszystkie dały zgodny obraz.
+
+PCA na ocenach składników pokazało, że dwie główne osie wyjaśniają łącznie 64% zróżnicowania. Pierwsza oś oddaje ogólne zainteresowanie składem. Składniki ułożyły się w logiczne grupy. Bez SLS i bez parabenów to kierunek czystego składu, a keratyna i olejki to pielęgnacja.
+
+Analiza korespondencji wypadła najlepiej pod względem jakości mapy. Dwie osie oddały prawie 89% informacji. CA potwierdziła wcześniejsze wyniki. Keratyna i olejki to składniki cenione, a vegan i bez SLS wypadają słabiej.
+
+MDS i NMDS na wyborach MBC pokazały, że trzy segmenty ładnie się rozdzielają na mapie. Wartość stress w NMDS wyniosła 0,128, co oznacza dobre dopasowanie. To potwierdza, że podział na trzy grupy ma sens.
+
+To, że PCA, CA i MDS prowadzą do tych samych wniosków, jest najlepszym dowodem, że w danych jest realna struktura. Konsumenci nie wybierają losowo, tylko dzielą się na czytelne typy według tego, czego chcą od szamponu.
 
 ## Ograniczenia
 
-- Próba liczy 36 osób i nie jest losowa. Większość to osoby w wieku 15–34 lata. Dlatego wyniki traktujemy jako eksploracyjne.
+- Próba liczy 36 osób i nie jest losowa. Większość to osoby w wieku 15-34 lata. Dlatego wyniki traktujemy jako eksploracyjne.
+
+<!-- -->
+
 - Przy składnikach (np. SLS, parabeny) padało dużo odpowiedzi „Nie wiem co to". To zmniejsza liczbę obserwacji w analizie składników.
+
+- Cecha „marka fryzjerska" była nieprecyzyjnie sformułowana. Nie zaznaczyliśmy, że chodzi o markę premium, więc respondenci mogli rozumieć ją po prostu jako markę znaną. To mogło zawyżyć jej wynik.
 
 ------------------------------------------------------------------------
 
